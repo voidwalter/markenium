@@ -1,0 +1,16 @@
+
+build/
+
+tmp/
+
+# for CMake
+CMakeCache.txt
+*.elf
+*.bin
+*.dbg
+*.hex
+*.a
+*.map
+Makefile
+cmake_install.cmake
+/**/CMakeFiles

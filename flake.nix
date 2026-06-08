@@ -1,30 +1,42 @@
 {
-  description = "Dev shell for markenium";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
 
-  inputs = {
-    nixpkgs.url = "nixpkgs/nixos-unstable";
-    flake-utils.url = "github:numtide/flake-utils";
+  outputs = { self, nixpkgs }: let
+    pkgs = nixpkgs.legacyPackages.x86_64-linux;
+    
+    # Define the specific Qt6 environment with Wayland support
+    qtEnv = pkgs.qt6.env "qt6-wayland-dev" [
+      pkgs.qt6.qtbase
+      pkgs.qt6.qtwayland
+      pkgs.qt6.qtdeclarative
+    ];
+  in {
+    devShells.x86_64-linux.default = pkgs.mkShell {
+      buildInputs = with pkgs; [
+        qtEnv
+        cmake
+		qt6.qtbase
+        gcc
+        gdb
+        qtcreator
+        qt6.wrapQtAppsHook
+        makeWrapper
+        bashInteractive
+      ];
+
+      shellHook = ''
+        echo "Entering Qt6 Wayland development environment"
+        
+        # Critical for Wayland
+        export QT_QPA_PLATFORM=wayland
+        export QT_QPA_PLATFORMTHEME=qt5ct
+        
+        # Set plugin and import paths explicitly
+        export QT_PLUGIN_PATH="${qtEnv}/lib/qt-6/plugins"
+        export QML_IMPORT_PATH="${qtEnv}/lib/qt-6/qml"
+        export QT_QPA_PLATFORM_PLUGIN_PATH="${qtEnv}/lib/qt-6/plugins/platforms"
+        
+      '';
+    };
   };
-
-  outputs = { self, nixpkgs, flake-utils, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = import nixpkgs { inherit system; };
-      in {
-        devShells.default = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            cmake
-            gnumake
-            gcc
-            qt6.qtbase        # provides Qt6 Widgets/Core/Gui and qmake, moc, uic
-            ninja
-          ];
-
-          shellHook = ''
-            export CMAKE_PREFIX_PATH=${pkgs.qt6.qtbase}
-            export QT_PLUGIN_PATH=${pkgs.qt6.qtbase}/lib/qt6/plugins
-            echo "Qt6 devshell ready (CMAKE_PREFIX_PATH set)"
-          '';
-        };
-      });
-}
+}   
